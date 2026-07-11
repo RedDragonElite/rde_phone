@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="../../theme/rdui-phone.css" />
+<script src="../../vendor/lucide.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+  body { background: var(--bg); color: var(--white); height: 100vh; overflow: hidden; }
+  .view { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .hidden { display: none !important; }
+
+  .thread-body { flex: 1; min-width: 0; }
+  .thread-name { font-size: 14px; font-weight: 600; }
+  .thread-preview { font-size: 12px; color: var(--muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .thread-time { font-size: 9px; color: var(--muted); font-family: var(--font-mono); }
+
+  .chat-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--b1); }
+  .chat-header button { background: none; border: none; color: var(--red); cursor: pointer; display: flex; }
+  .chat-header .name { font-size: 14px; font-weight: 600; }
+  .messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .bubble { max-width: 75%; padding: 9px 13px; border-radius: var(--r-md); font-size: 13px; line-height: 1.3; }
+  .bubble.me { align-self: flex-end; background: linear-gradient(145deg, var(--red3), var(--red2)); color: #fff; border-bottom-right-radius: 4px; }
+  .bubble.them { align-self: flex-start; background: var(--bgc); border: 1px solid var(--b1); border-bottom-left-radius: 4px; }
+  .composer { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--b1); }
+  .composer input {
+    flex: 1; background: var(--bg2); border: 1px solid var(--b1);
+    color: var(--white); padding: 10px 14px; border-radius: var(--r-full); font-size: 13px;
+  }
+  .composer input:focus { outline: none; border-color: var(--red2); }
+  .composer button {
+    border: none; color: #fff;
+    width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .composer button [data-lucide] { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+
+  <!-- Thread list -->
+  <div id="view-list" class="view">
+    <div id="thread-list" style="overflow-y:auto; flex:1;"></div>
+    <button class="rdui-fab rdui-glass" id="new-thread-btn"><i data-lucide="edit-3"></i></button>
+  </div>
+
+  <div class="rdui-modal-backdrop hidden" id="new-modal">
+    <div class="rdui-modal">
+      <h3 id="new-modal-title">New Message</h3>
+      <input id="new-number" placeholder="555-0000" />
+      <div class="rdui-modal-actions">
+        <button class="rdui-btn ghost" id="new-cancel">Cancel</button>
+        <button class="rdui-btn solid rdui-glass" id="new-start">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat detail -->
+  <div id="view-chat" class="view hidden">
+    <div class="chat-header">
+      <button id="back-btn"><i data-lucide="chevron-left"></i></button>
+      <div class="name" id="chat-name">...</div>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="composer">
+      <input id="msg-input" placeholder="Message..." />
+      <button id="send-btn" class="rdui-glass"><i data-lucide="send"></i></button>
+    </div>
+  </div>
+
+  <script src="../../sdk/rde-phone-sdk.js"></script>
+  <script>
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+    refreshIcons();
+
+    const INTL_TAG = { en: 'en-US', de: 'de-DE' };
+    function intlTag() { return INTL_TAG[RDEPhone.getLanguage()] || 'en-US'; }
+
+    let myNumber = null;
+    let contactNames = {};
+    let currentThread = null;
+
+    function fmtTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleTimeString(intlTag(), { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function nameFor(number) {
+      return contactNames[number] || number;
+    }
+
+    async function applyStaticText() {
+      await RDEPhone.ready;
+      document.getElementById('new-modal-title').textContent = RDEPhone.t('sms_new_message');
+      document.getElementById('new-number').placeholder = RDEPhone.t('sms_placeholder_num');
+      document.getElementById('new-cancel').textContent = RDEPhone.t('sms_cancel');
+      document.getElementById('new-start').textContent = RDEPhone.t('sms_continue');
+      document.getElementById('msg-input').placeholder = RDEPhone.t('sms_placeholder_msg');
+    }
+    applyStaticText();
+
+    async function loadThreads() {
+      await RDEPhone.ready;
+      const list = document.getElementById('thread-list');
+      let identity, contacts, threads;
+      try {
+        [identity, contacts, threads] = await Promise.all([
+          RDEPhone.request('getIdentity'),
+          RDEPhone.request('getContacts'),
+          RDEPhone.request('getThreads'),
+        ]);
+      } catch (e) {
+        list.innerHTML = `<div class="rdui-empty">${RDEPhone.t('sms_load_error')}</div>`;
+        return;
+      }
+      if (!identity || !identity.number) {
+        list.innerHTML = `<div class="rdui-empty">${RDEPhone.t('sms_load_error')}</div>`;
+        return;
+      }
+      myNumber = identity.number;
+      contactNames = {};
+      (contacts || []).forEach(c => contactNames[c.number] = c.name);
+
+      if (!threads || !threads.length) {
+        list.innerHTML = `<div class="rdui-empty">${RDEPhone.t('sms_empty_threads')}</div>`;
+        return;
+      }
+      list.innerHTML = threads.map(t => `
+        <div class="rdui-list-item" data-number="${t.other_num}" style="cursor:pointer;">
+          <div class="rdui-avatar rdui-glass"><i data-lucide="user"></i></div>
+          <div class="thread-body">
+            <div class="thread-name">${nameFor(t.other_num)}</div>
+            <div class="thread-preview">${t.from_num === myNumber ? RDEPhone.t('sms_you_prefix') : ''}${t.body}</div>
+          </div>
+          <div class="thread-time">${fmtTime(t.created_at)}</div>
+        </div>
+      `).join('');
+      refreshIcons();
+
+      document.querySelectorAll('[data-number]').forEach(node => {
+        node.addEventListener('click', () => openThread(node.dataset.number));
+      });
+    }
+
+    async function openThread(number) {
+      currentThread = number;
+      document.getElementById('view-list').classList.add('hidden');
+      document.getElementById('view-chat').classList.remove('hidden');
+      document.getElementById('chat-name').textContent = nameFor(number);
+      await renderMessages();
+    }
+
+    async function renderMessages() {
+      const thread = await RDEPhone.request('getThread', currentThread);
+      const box = document.getElementById('messages');
+      box.innerHTML = (thread || []).map(m => `
+        <div class="bubble ${m.from_num === myNumber ? 'me' : 'them'}">${m.body}</div>
+      `).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      document.getElementById('view-chat').classList.add('hidden');
+      document.getElementById('view-list').classList.remove('hidden');
+      loadThreads();
+    });
+
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('msg-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const body = input.value.trim();
+      if (!body || !currentThread) return;
+      input.value = '';
+      await RDEPhone.request('sendSms', { to: currentThread, body });
+      await renderMessages();
+    }
+
+    document.getElementById('new-thread-btn').addEventListener('click', () => {
+      document.getElementById('new-number').value = '';
+      document.getElementById('new-modal').classList.remove('hidden');
+    });
+    document.getElementById('new-cancel').addEventListener('click', () => {
+      document.getElementById('new-modal').classList.add('hidden');
+    });
+    document.getElementById('new-start').addEventListener('click', () => {
+      const number = document.getElementById('new-number').value.trim();
+      document.getElementById('new-modal').classList.add('hidden');
+      if (number) openThread(number);
+    });
+
+    // Live update: shell forwards sms:received here while the app is open
+    RDEPhone.on('sms:received', (payload) => {
+      if (currentThread && payload.from === currentThread) {
+        renderMessages();
+      } else {
+        loadThreads();
+      }
+    });
+
+    loadThreads();
+  </script>
+</body>
+</html>

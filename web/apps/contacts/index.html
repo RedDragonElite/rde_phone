@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="../../theme/rdui-phone.css" />
+<script src="../../vendor/lucide.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+  body { background: var(--bg); color: var(--white); height: 100vh; overflow-y: auto; padding-bottom: 70px; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-size: 14px; font-weight: 600; }
+  .number { font-size: 11px; color: var(--muted2); font-family: var(--font-mono); margin-top: 2px; }
+  .actions { display: flex; gap: 6px; }
+  .actions button {
+    width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--b1);
+    background: var(--bg2); color: var(--red); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .actions button [data-lucide] { width: 15px; height: 15px; }
+</style>
+</head>
+<body>
+  <div id="list"></div>
+  <button class="rdui-fab rdui-glass" id="add-btn"><i data-lucide="user-plus"></i></button>
+
+  <div class="rdui-modal-backdrop hidden" id="modal">
+    <div class="rdui-modal">
+      <h3 id="modal-title">Add Contact</h3>
+      <input id="in-name" placeholder="Name" />
+      <input id="in-number" placeholder="555-0000" />
+      <div class="rdui-modal-actions">
+        <button class="rdui-btn ghost" id="cancel-btn">Cancel</button>
+        <button class="rdui-btn solid rdui-glass" id="save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../sdk/rde-phone-sdk.js"></script>
+  <script>
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+    refreshIcons();
+
+    async function applyStaticText() {
+      await RDEPhone.ready;
+      document.getElementById('modal-title').textContent = RDEPhone.t('contacts_add_title');
+      document.getElementById('in-name').placeholder = RDEPhone.t('contacts_name');
+      document.getElementById('cancel-btn').textContent = RDEPhone.t('contacts_cancel');
+      document.getElementById('save-btn').textContent = RDEPhone.t('contacts_save');
+    }
+    applyStaticText();
+
+    async function load() {
+      await RDEPhone.ready;
+      const contacts = await RDEPhone.request('getContacts');
+      const list = document.getElementById('list');
+      if (!contacts || !contacts.length) {
+        list.innerHTML = `<div class="rdui-empty">${RDEPhone.t('contacts_empty')}</div>`;
+        return;
+      }
+      list.innerHTML = contacts.map(c => `
+        <div class="rdui-list-item">
+          <div class="rdui-avatar rdui-glass"><i data-lucide="user"></i></div>
+          <div class="info">
+            <div class="name">${c.name}</div>
+            <div class="number">${c.number}</div>
+          </div>
+          <div class="actions">
+            <button data-action="call" data-number="${c.number}"><i data-lucide="phone"></i></button>
+            <button data-action="sms" data-number="${c.number}"><i data-lucide="message-circle"></i></button>
+          </div>
+        </div>
+      `).join('');
+      refreshIcons();
+
+      document.querySelectorAll('[data-action="call"]').forEach(btn => {
+        btn.addEventListener('click', () => RDEPhone.request('startCall', btn.dataset.number));
+      });
+      // Deep-linking into the SMS app's chat view is Phase 3 (app registry / shared nav) —
+      // v1 fallback keeps every app fully independent per the SDK contract.
+      document.querySelectorAll('[data-action="sms"]').forEach(btn => {
+        btn.addEventListener('click', () => RDEPhone.notify({
+            title: RDEPhone.t('contacts_open_sms_title'),
+            body: RDEPhone.t('contacts_open_sms'),
+            icon: 'message-circle',
+        }));
+      });
+    }
+
+    const modal = document.getElementById('modal');
+    document.getElementById('add-btn').addEventListener('click', () => modal.classList.remove('hidden'));
+    document.getElementById('cancel-btn').addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const name = document.getElementById('in-name').value.trim();
+      const number = document.getElementById('in-number').value.trim();
+      if (!name || !number) return;
+      await RDEPhone.request('addContact', { name, number });
+      document.getElementById('in-name').value = '';
+      document.getElementById('in-number').value = '';
+      modal.classList.add('hidden');
+      load();
+    });
+
+    load();
+  </script>
+</body>
+</html>

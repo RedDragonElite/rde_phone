@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="../../theme/rdui-phone.css" />
+<script src="../../vendor/lucide.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+  body { background: var(--bg); color: var(--white); height: 100vh; display: flex; flex-direction: column; }
+  .my-number { text-align: center; font-size: 10px; color: var(--muted2); padding: 10px 0 4px; font-family: var(--font-mono); letter-spacing: 1px; text-transform: uppercase; }
+  .log { flex: 1; overflow-y: auto; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .status-answered { background: var(--green); box-shadow: 0 0 6px var(--gglow); }
+  .status-missed { background: var(--red); box-shadow: 0 0 6px var(--glow); }
+  .status-declined { background: var(--orange); }
+  .call-info { flex: 1; }
+  .call-number { font-size: 13px; font-weight: 600; }
+  .call-meta { font-size: 10px; color: var(--muted2); margin-top: 1px; font-family: var(--font-mono); }
+  .call-row-btn { background: var(--bg2); border: 1px solid var(--b1); color: var(--red); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .call-row-btn [data-lucide] { width: 14px; height: 14px; }
+
+  .dialer { padding: 12px; border-top: 1px solid var(--b1); display: flex; gap: 8px; }
+  .dialer input {
+    flex: 1; background: var(--bg2); border: 1px solid var(--b1);
+    color: var(--white); padding: 10px 14px; border-radius: var(--r-full); font-size: 13px; font-family: var(--font-mono);
+  }
+  .dialer input:focus { outline: none; border-color: var(--red2); }
+  .dialer button {
+    border: none; color: #fff;
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .dialer button [data-lucide] { width: 17px; height: 17px; }
+  #msg { text-align: center; font-size: 10px; color: var(--muted2); min-height: 14px; font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+  <div class="my-number" id="my-number">...</div>
+  <div class="log" id="log"></div>
+  <div id="msg"></div>
+  <div class="dialer">
+    <input id="target" placeholder="555-0000" />
+    <button id="call-btn" class="rdui-glass green"><i data-lucide="phone"></i></button>
+  </div>
+
+  <script src="../../sdk/rde-phone-sdk.js"></script>
+  <script>
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+    // Static markup (dialer button, header icons) needs its own pass —
+    // the dynamic refreshIcons() calls below only fire on the success path,
+    // and every early-return (empty log, error) would otherwise skip it.
+    refreshIcons();
+
+    const INTL_TAG = { en: 'en-US', de: 'de-DE' };
+    function intlTag() { return INTL_TAG[RDEPhone.getLanguage()] || 'en-US'; }
+
+    let myNumber = null;
+    let contactNames = {};
+
+    function nameFor(n) { return contactNames[n] || n; }
+
+    function statusLabel(s) {
+      return s === 'answered' ? RDEPhone.t('calls_answered') : s === 'missed' ? RDEPhone.t('calls_missed') : RDEPhone.t('calls_declined');
+    }
+
+    function fmtTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleString(intlTag(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function applyStaticText() {
+      await RDEPhone.ready;
+      document.getElementById('target').placeholder = RDEPhone.t('sms_placeholder_num');
+    }
+    applyStaticText();
+
+    async function load() {
+      await RDEPhone.ready;
+      let identity, contacts, log;
+      try {
+        [identity, contacts, log] = await Promise.all([
+          RDEPhone.request('getIdentity'),
+          RDEPhone.request('getContacts'),
+          RDEPhone.request('getCallLog'),
+        ]);
+      } catch (e) {
+        document.getElementById('log').innerHTML = `<div class="rdui-empty">${RDEPhone.t('calls_load_error')}</div>`;
+        return;
+      }
+      if (!identity || !identity.number) {
+        document.getElementById('log').innerHTML = `<div class="rdui-empty">${RDEPhone.t('calls_load_error')}</div>`;
+        return;
+      }
+      myNumber = identity.number;
+      document.getElementById('my-number').textContent = RDEPhone.t('calls_your_number', myNumber);
+      contactNames = {};
+      (contacts || []).forEach(c => contactNames[c.number] = c.name);
+
+      const box = document.getElementById('log');
+      if (!log || !log.length) {
+        box.innerHTML = `<div class="rdui-empty">${RDEPhone.t('calls_empty_log')}</div>`;
+        return;
+      }
+      box.innerHTML = log.map(c => {
+        const outgoing = c.caller_num === myNumber;
+        const other = outgoing ? c.callee_num : c.caller_num;
+        const direction = outgoing ? RDEPhone.t('calls_outgoing') : RDEPhone.t('calls_incoming');
+        return `
+          <div class="rdui-list-item">
+            <div class="status-dot status-${c.status}"></div>
+            <div class="call-info">
+              <div class="call-number">${nameFor(other)}</div>
+              <div class="call-meta">${direction} · ${statusLabel(c.status)} · ${fmtTime(c.created_at)}</div>
+            </div>
+            <button class="call-row-btn" data-number="${other}"><i data-lucide="phone"></i></button>
+          </div>
+        `;
+      }).join('');
+      refreshIcons();
+
+      document.querySelectorAll('.call-row-btn').forEach(btn => {
+        btn.addEventListener('click', () => startCall(btn.dataset.number));
+      });
+    }
+
+    async function startCall(number) {
+      const msg = document.getElementById('msg');
+      msg.textContent = RDEPhone.t('calls_calling');
+      const result = await RDEPhone.request('startCall', number).catch(e => e);
+      msg.textContent = (result && result.error) ? (result.message || RDEPhone.t('calls_error')) : RDEPhone.t('calls_ringing');
+    }
+
+    document.getElementById('call-btn').addEventListener('click', () => {
+      const target = document.getElementById('target').value.trim();
+      if (target) startCall(target);
+    });
+
+    RDEPhone.on('call:logUpdated', load);
+
+    load();
+  </script>
+</body>
+</html>

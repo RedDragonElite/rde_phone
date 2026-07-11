@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="../../theme/rdui-phone.css" />
+<script src="../../vendor/lucide.js"></script>
+<script src="../../theme/rdui-audio.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+  body { background: var(--bg); color: var(--white); padding: 16px; padding-bottom: 40px; }
+  h2 {
+    font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 2px;
+    color: var(--red); margin: 22px 0 12px; display: flex; align-items: center; gap: 6px;
+  }
+  h2:first-child { margin-top: 0; }
+  h2 [data-lucide] { width: 13px; height: 13px; }
+
+  .wallpapers { display: flex; gap: 10px; flex-wrap: wrap; }
+  .wp-swatch { width: 64px; height: 112px; border-radius: var(--r-md); cursor: pointer; border: 2px solid var(--b1); position: relative; overflow: hidden; }
+  .wp-swatch.selected { border-color: var(--red); box-shadow: 0 0 12px var(--glow-soft); }
+  .wp-swatch span { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 8px; font-family: var(--font-mono); color: var(--white2); text-transform: uppercase; letter-spacing: .5px; }
+  .wp-swatch.wp-custom-swatch { background: linear-gradient(145deg, #1a1a1a, #0a0a0a); display: flex; align-items: center; justify-content: center; }
+  .wp-swatch.wp-custom-swatch [data-lucide] { width: 20px; height: 20px; color: var(--muted2); }
+
+  .custom-url-row { display: none; gap: 8px; margin-top: 10px; }
+  .custom-url-row.visible { display: flex; }
+  .custom-url-row input {
+    flex: 1; background: var(--bg2); border: 1px solid var(--b1); border-radius: var(--r-sm);
+    color: var(--white); padding: 9px 12px; font-size: 12px; font-family: var(--font-mono);
+  }
+  .custom-url-row input:focus { outline: none; border-color: var(--red2); }
+  .custom-url-row button {
+    background: linear-gradient(145deg, var(--red3), var(--red2)); border: none; color: #fff;
+    border-radius: var(--r-sm); padding: 0 14px; font-size: 11px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono);
+  }
+
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 4px; border-bottom: 1px solid var(--b1);
+    font-size: 13px; gap: 10px;
+  }
+  .row-label { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .row-label [data-lucide] { width: 16px; height: 16px; color: var(--muted2); }
+
+  .tone-picker { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+  select.tone-select {
+    background: var(--bg2); border: 1px solid var(--b1); color: var(--white);
+    border-radius: var(--r-sm); padding: 6px 8px; font-size: 12px; font-family: var(--font-sans);
+    max-width: 110px;
+  }
+  .preview-btn {
+    background: var(--bg2); border: 1px solid var(--b1); color: var(--red);
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .preview-btn [data-lucide] { width: 13px; height: 13px; }
+
+  .lang-toggle { display: flex; gap: 8px; }
+  .lang-btn {
+    background: var(--bg2); border: 1px solid var(--b1); color: var(--white2);
+    padding: 7px 14px; border-radius: var(--r-full); cursor: pointer;
+    font-size: 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .lang-btn.selected { background: rgba(255,0,0,.12); border-color: var(--red2); color: var(--red); }
+</style>
+</head>
+<body>
+  <h2><i data-lucide="image"></i><span id="h-wallpaper">Wallpaper</span></h2>
+  <div class="wallpapers" id="wallpapers">
+    <div class="wp-swatch wp-crimson" data-wp="crimson"><span>Crimson</span></div>
+    <div class="wp-swatch wp-cartel" data-wp="cartel"><span>Cartel</span></div>
+    <div class="wp-swatch wp-terminal" data-wp="terminal"><span>Terminal</span></div>
+    <div class="wp-swatch wp-void" data-wp="void"><span>Void</span></div>
+    <div class="wp-swatch wp-custom-swatch" data-wp="custom"><i data-lucide="link"></i></div>
+  </div>
+  <div class="custom-url-row" id="custom-url-row">
+    <input id="wallpaper-url" placeholder="https://..." />
+    <button id="wallpaper-url-apply">Apply</button>
+  </div>
+
+  <h2><i data-lucide="volume-2"></i><span id="h-sound">Sound &amp; Vibration</span></h2>
+  <div class="row">
+    <div class="row-label"><i data-lucide="bell-ring"></i><span id="l-ringtone">Ringtone</span></div>
+    <div class="tone-picker">
+      <select class="tone-select" id="ringtone-select"></select>
+      <button class="preview-btn" id="ringtone-preview"><i data-lucide="play"></i></button>
+      <div class="rdui-toggle" id="toggle-ringtone"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="row-label"><i data-lucide="message-circle"></i><span id="l-smstone">Message Tone</span></div>
+    <div class="tone-picker">
+      <select class="tone-select" id="smstone-select"></select>
+      <button class="preview-btn" id="smstone-preview"><i data-lucide="play"></i></button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="row-label"><i data-lucide="vibrate"></i><span id="l-vibration">Vibration</span></div>
+    <div class="rdui-toggle" id="toggle-vibration"></div>
+  </div>
+
+  <h2><i data-lucide="languages"></i><span id="h-language">Language</span></h2>
+  <div class="lang-toggle" id="lang-toggle">
+    <button class="lang-btn" data-lang="en">English</button>
+    <button class="lang-btn" data-lang="de">Deutsch</button>
+  </div>
+
+  <script src="../../sdk/rde-phone-sdk.js"></script>
+  <script>
+    function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+    let settings = {
+      wallpaper: 'crimson', wallpaperUrl: null,
+      ringtone: true, ringtoneId: 'classic', smsToneId: 'ping',
+      vibration: true, language: 'en',
+    };
+    let toneLists = { ringtones: [], smsTones: [] };
+    let localeTable = null;
+
+    // Local translator tied to settings.language (not RDEPhone.t()'s cached
+    // language) — this app changes the language live, so it needs to react
+    // immediately rather than wait for the SDK's cache to catch up.
+    function t(key) {
+      const table = (localeTable && (localeTable[settings.language] || localeTable.en)) || {};
+      return table[key] || key;
+    }
+
+    function render() {
+      document.querySelectorAll('.wp-swatch').forEach(s => {
+        s.classList.toggle('selected', s.dataset.wp === settings.wallpaper);
+      });
+      document.getElementById('custom-url-row').classList.toggle('visible', settings.wallpaper === 'custom');
+      if (settings.wallpaperUrl) document.getElementById('wallpaper-url').value = settings.wallpaperUrl;
+
+      document.getElementById('toggle-ringtone').classList.toggle('on', settings.ringtone);
+      document.getElementById('toggle-vibration').classList.toggle('on', settings.vibration);
+      document.getElementById('ringtone-select').value = settings.ringtoneId;
+      document.getElementById('smstone-select').value = settings.smsToneId;
+
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.lang === settings.language);
+      });
+    }
+
+    function populateToneSelects() {
+      const rSel = document.getElementById('ringtone-select');
+      const sSel = document.getElementById('smstone-select');
+      rSel.innerHTML = toneLists.ringtones.map(rt => `<option value="${rt.id}">${rt.label}</option>`).join('');
+      sSel.innerHTML = toneLists.smsTones.map(st => `<option value="${st.id}">${st.label}</option>`).join('');
+    }
+
+    async function save() {
+      await RDEPhone.request('setSettings', settings);
+      RDEPhone.notify({ title: t('app_settings_title'), body: t('settings_saved'), icon: 'check-circle' });
+      // Tell the shell immediately, no reload required
+      window.parent.postMessage({ source: 'rde_phone_app', type: 'settingsChanged', data: settings }, '*');
+    }
+
+    document.querySelectorAll('.wp-swatch').forEach(s => {
+      s.addEventListener('click', () => { settings.wallpaper = s.dataset.wp; render(); save(); });
+    });
+    document.getElementById('wallpaper-url-apply').addEventListener('click', () => {
+      const url = document.getElementById('wallpaper-url').value.trim();
+      if (!url) return;
+      settings.wallpaper = 'custom';
+      settings.wallpaperUrl = url;
+      render();
+      save();
+    });
+
+    document.getElementById('toggle-ringtone').addEventListener('click', () => { settings.ringtone = !settings.ringtone; render(); save(); });
+    document.getElementById('toggle-vibration').addEventListener('click', () => { settings.vibration = !settings.vibration; render(); save(); });
+    document.getElementById('ringtone-select').addEventListener('change', (e) => { settings.ringtoneId = e.target.value; save(); });
+    document.getElementById('smstone-select').addEventListener('change', (e) => { settings.smsToneId = e.target.value; save(); });
+    document.getElementById('ringtone-preview').addEventListener('click', () => {
+      window.RDEAudio && RDEAudio.playRingtonePattern(document.getElementById('ringtone-select').value);
+    });
+    document.getElementById('smstone-preview').addEventListener('click', () => {
+      window.RDEAudio && RDEAudio.playSmsTonePattern(document.getElementById('smstone-select').value);
+    });
+
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        settings.language = b.dataset.lang;
+        render();
+        save();
+        applyTranslations();
+      });
+    });
+
+    function applyTranslations() {
+      document.getElementById('h-wallpaper').textContent = t('settings_wallpaper');
+      document.getElementById('h-sound').textContent = t('settings_sound_section');
+      document.getElementById('h-language').textContent = t('settings_language');
+      document.getElementById('l-ringtone').textContent = t('settings_ringtone');
+      document.getElementById('l-smstone').textContent = t('settings_sms_tone');
+      document.getElementById('l-vibration').textContent = t('settings_vibration');
+      document.getElementById('wallpaper-url').placeholder = t('settings_wallpaper_url_placeholder');
+      document.getElementById('wallpaper-url-apply').textContent = t('settings_wallpaper_apply');
+      document.querySelector('[data-wp="custom"]').title = t('settings_wallpaper_custom');
+    }
+
+    (async () => {
+      const [s, localeData] = await Promise.all([
+        RDEPhone.request('getSettings'),
+        RDEPhone.request('getLocaleData'),
+      ]);
+      if (s && !s.error) settings = s;
+      if (localeData) {
+        toneLists.ringtones = localeData.ringtones || [];
+        toneLists.smsTones = localeData.smsTones || [];
+        localeTable = localeData.locales || null;
+      }
+      populateToneSelects();
+      render();
+      applyTranslations();
+      refreshIcons();
+    })();
+  </script>
+</body>
+</html>

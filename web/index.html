@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>WYRM OS</title>
+<link rel="stylesheet" href="theme/rdui-phone.css" />
+<link rel="stylesheet" href="css/phone.css" />
+<script src="vendor/lucide.js"></script>
+<script src="theme/rdui-audio.js"></script>
+</head>
+<body class="hidden">
+
+<div id="phone-frame">
+  <div id="phone-screen">
+    <div class="notch"></div>
+
+    <div class="status-bar">
+      <div class="status-time">--:--</div>
+      <div class="status-icons">
+        <i data-lucide="signal" class="si"></i>
+        <i data-lucide="wifi" class="si"></i>
+        <span class="batt"><i data-lucide="battery-full" class="si"></i>100%</span>
+      </div>
+    </div>
+
+    <!-- Boot sequence — RDE logo glitch-in, plays once on first open -->
+    <div id="boot-screen">
+      <div class="boot-logo">WYRM<span class="boot-os">OS</span></div>
+      <div class="boot-sub">RED DRAGON ELITE // PHONE KERNEL</div>
+      <div class="boot-bar"><div class="boot-bar-fill"></div></div>
+    </div>
+
+    <!-- Lockscreen -->
+    <div id="lockscreen" class="wp-crimson">
+      <div class="lock-brand">WYRM<span>OS</span></div>
+      <div class="lock-time status-time">--:--</div>
+      <div class="lock-date" id="lock-date"></div>
+      <div class="lock-notifs" id="lock-notifs"></div>
+      <div class="swipe-hint"><i data-lucide="chevron-up" class="si"></i><span id="swipe-hint-text">Swipe up to unlock</span></div>
+    </div>
+
+    <!-- Homescreen -->
+    <div id="homescreen" class="wp-crimson hidden">
+      <div class="app-grid" id="app-grid"></div>
+    </div>
+
+    <!-- Notification Center — tap status bar to toggle -->
+    <div id="notif-center" class="hidden">
+      <div class="notif-center-header">
+        <span><i data-lucide="bell" class="si"></i><span id="notif-center-title">Notifications</span></span>
+        <button id="notif-clear">Clear</button>
+      </div>
+      <div id="notif-center-list"></div>
+    </div>
+
+    <!-- App host (iframe) -->
+    <div id="app-view" class="hidden">
+      <div class="app-header">
+        <button id="app-back"><i data-lucide="chevron-left"></i></button>
+        <span id="app-title"></span>
+      </div>
+      <iframe id="app-frame" src="about:blank"></iframe>
+    </div>
+
+    <!-- Call overlay -->
+    <div id="call-overlay" class="hidden">
+      <div style="text-align:center;">
+        <div class="call-avatar"><i data-lucide="phone"></i></div>
+        <div id="call-number">555-0000</div>
+        <div id="call-status-label">Calling...</div>
+        <div id="call-duration">00:00</div>
+      </div>
+      <div class="call-actions">
+        <button id="call-decline" class="call-btn decline rdui-glass"><i data-lucide="phone-off"></i></button>
+        <button id="call-accept" class="call-btn accept rdui-glass green"><i data-lucide="phone"></i></button>
+        <button id="call-hangup" class="call-btn hangup rdui-glass"><i data-lucide="phone-off"></i></button>
+      </div>
+    </div>
+
+    <div id="notif-stack"></div>
+  </div>
+</div>
+
+<script src="js/phone.js"></script>
+</body>
+</html>

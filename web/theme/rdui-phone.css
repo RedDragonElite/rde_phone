@@ -1,0 +1,217 @@
+/* ================================================================
+   WYRM OS  ·  RDE Phone Theme
+   Derived from RDWE-UI v1.0.0 — same tokens, phone-scaled components.
+   Deliberately NOT ported: scanline sweep, grid overlay, sharp 0px
+   corners. A phone reads as broken with those; the red/black/green
+   identity + Lucide icons + glow carry the brand without them.
+================================================================ */
+
+:root {
+  /* ── Core Palette (identical to RDWE-UI) ── */
+  --bg:       #000000;
+  --bg2:      #080808;
+  --bgc:      #0a0a0a;
+  --bgh:      #0e0e0e;
+
+  --b1:       #1c1c1c;
+  --b2:       #2a0000;
+
+  --red:      #ff0000;
+  --red2:     #8b0000;
+  --red3:     #cc0000;
+  --green:    #00ff00;
+  --green2:   #00cc00;
+  --green3:   #009900;
+
+  --blue:     #0096ff;
+  --orange:   #f59e0b;
+
+  --muted:    #555555;
+  --muted2:   #777777;
+  --white:    #e8e8e8;
+  --white2:   #aaaaaa;
+
+  --glow:      rgba(255,0,0,.35);
+  --glow-soft: rgba(255,0,0,.15);
+  --gglow:     rgba(0,255,0,.25);
+
+  --font-mono: 'Consolas','Monaco','Courier New',monospace;
+  --font-sans: -apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+
+  /* Phone chrome gets real radius — 0px reads as broken on a phone,
+     even in a terminal-styled OS. The brand lives in color/type/glow. */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-full: 999px;
+
+  --transition: .16s ease;
+}
+
+/* ── Reusable RDUI components, scaled for a ~380px phone screen ── */
+
+.rdui-glow-red   { text-shadow: 0 0 10px var(--glow); }
+.rdui-glow-green { text-shadow: 0 0 10px var(--gglow); }
+
+.rdui-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:1px 7px; border:1px solid var(--red2);
+  border-radius: var(--r-full);
+  font-size:9px; text-transform:uppercase; letter-spacing:1px;
+  font-family:var(--font-mono);
+  color:var(--red); background:rgba(255,0,0,.08);
+}
+.rdui-badge.count {
+  padding:0; min-width:16px; height:16px; justify-content:center;
+  font-size:9px; font-weight:700;
+}
+
+.rdui-card {
+  background: var(--bgc);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+.rdui-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+  opacity:0; transition: opacity .3s;
+}
+.rdui-card:active::before,
+.rdui-card.active::before { opacity: .8; }
+
+/* ── Glass utility — semi-transparent, blurred, with a diagonal shine
+   streak so it reads as actual glass, not just a flat translucent box.
+   Tint comes from CSS vars (default red) so per-app icon colors can
+   override just --glass-c1/--glass-c2/--glass-glow via inline style,
+   without redefining the whole blur/shine/border treatment. ── */
+.rdui-glass {
+  --glass-c1: 255,20,20;
+  --glass-c2: 80,0,0;
+  --glass-glow: 255,0,0;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(var(--glass-c1),.38), rgba(var(--glass-c2),.28));
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.3),
+    inset 0 -6px 10px rgba(0,0,0,.25),
+    0 6px 18px rgba(var(--glass-glow),.22);
+}
+.rdui-glass::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,.28), transparent);
+  pointer-events: none;
+}
+.rdui-glass::after {
+  content: '';
+  position: absolute; top: -50%; left: -25%;
+  width: 55%; height: 200%;
+  background: rgba(255,255,255,.14);
+  transform: rotate(22deg);
+  pointer-events: none;
+}
+.rdui-glass.green {
+  --glass-c1: 20,255,20;
+  --glass-c2: 0,60,0;
+  --glass-glow: 0,255,0;
+}
+
+.rdui-btn {
+  background: var(--bg2);
+  color: var(--red);
+  border: 1px solid var(--red2);
+  border-radius: var(--r-full);
+  padding: 9px 18px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all var(--transition);
+}
+.rdui-btn:active { transform: scale(.96); background: rgba(255,0,0,.12); }
+.rdui-btn.solid { color: #fff; border-color: rgba(255,255,255,.2); }
+.rdui-btn.solid:active { transform: scale(.96); }
+.rdui-btn.ghost { background: transparent; border-color: var(--b1); color: var(--white2); }
+
+/* Toggle switch — identical logic/markup to RDWE-UI's .toggle */
+.rdui-toggle { width:40px; height:22px; background:var(--b1); border:1px solid var(--b1); border-radius: var(--r-full); position:relative; cursor:pointer; transition: all var(--transition); flex-shrink:0; }
+.rdui-toggle::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--muted); transition: all var(--transition); }
+.rdui-toggle.on { background:rgba(0,255,0,.15); border-color:var(--green3); }
+.rdui-toggle.on::after { background:var(--green); left:20px; box-shadow:0 0 8px var(--gglow); }
+
+.rdui-list-item {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px;
+  border-bottom:1px solid var(--b1);
+  transition: background var(--transition);
+}
+.rdui-list-item:last-child { border-bottom:none; }
+.rdui-list-item:active { background: rgba(255,0,0,.04); }
+
+.rdui-avatar {
+  width:40px; height:40px; border-radius: var(--r-full);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; flex-shrink:0;
+}
+
+.rdui-fab {
+  position: fixed; bottom: 18px; right: 18px;
+  width: 50px; height: 50px; border-radius: 50%;
+  border: none; color: #fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor: pointer;
+}
+.rdui-fab:active { transform: scale(.94); }
+
+.rdui-empty {
+  text-align:center; color:var(--muted2); font-size:12px;
+  font-family: var(--font-mono); text-transform:uppercase; letter-spacing:1px;
+  margin-top:50px;
+}
+
+.rdui-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: flex; align-items: flex-end; z-index: 50;
+}
+.rdui-modal-backdrop.hidden { display: none; }
+.rdui-modal {
+  background: var(--bgc); border-top: 1px solid var(--b2);
+  width: 100%; border-radius: var(--r-lg) var(--r-lg) 0 0; padding: 20px;
+  box-shadow: 0 -8px 30px rgba(0,0,0,.5);
+}
+.rdui-modal h3 {
+  font-family: var(--font-mono); font-size: 12px; color: var(--red);
+  text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+}
+.rdui-modal input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--b1);
+  border-radius: var(--r-sm); color: var(--white); padding: 11px 13px;
+  font-size: 13px; margin-bottom: 12px; font-family: var(--font-sans);
+}
+.rdui-modal input:focus { outline: none; border-color: var(--red2); }
+.rdui-modal-actions { display: flex; gap: 8px; }
+.rdui-modal-actions .rdui-btn { flex: 1; }
+
+/* Scrollbars stay on-brand everywhere */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background: var(--red2); }
+
+/* ── Wallpapers — shared between the phone shell (lockscreen/homescreen)
+   and the settings app's swatch previews, so they always match exactly. ── */
+.wp-crimson { background: radial-gradient(circle at 50% 15%, #1a0000 0%, #000 70%); }
+.wp-void    { background: #000; }
+.wp-cartel  { background: linear-gradient(165deg, #1a0000 0%, #000 60%); position: relative; }
+.wp-cartel::after {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image: linear-gradient(rgba(255,0,0,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,0,.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+.wp-terminal { background: radial-gradient(circle at 50% 10%, #001a00 0%, #000 70%); }

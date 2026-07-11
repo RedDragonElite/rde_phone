@@ -1,0 +1,323 @@
+/* rde_phone / web / css / phone.css — WYRM OS shell (uses tokens from theme/rdui-phone.css) */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%; height: 100%;
+    background: transparent;
+    font-family: var(--font-sans);
+    overflow: hidden;
+}
+body.hidden { display: none; }
+
+/* Lucide icons default sizing */
+[data-lucide] { width: 18px; height: 18px; stroke-width: 2; }
+.si[data-lucide] { width: 14px; height: 14px; }
+
+#phone-frame {
+    position: fixed;
+    /* Was fixed right:40px/bottom:40px/380x780px — identical CSS on every
+       client, but on a smaller resolution/window that fixed box eats a much
+       bigger share of the screen, so the 40px corner margin reads as
+       "roughly centered" instead of pinned bottom-right. clamp() keeps the
+       same look on a normal desktop res while scaling down proportionally
+       instead of overflowing the visual balance on smaller screens. */
+    right: clamp(16px, 2.5vw, 40px);
+    bottom: clamp(16px, 2.5vh, 40px);
+    width: clamp(300px, 22vw, 380px);
+    height: clamp(560px, 76vh, 780px);
+    border-radius: var(--r-lg);
+    background: linear-gradient(160deg, #141414, #000000);
+    padding: 12px;
+    box-shadow: 0 0 0 1px var(--b2), 0 0 40px rgba(255,0,0,.08), 0 30px 80px rgba(0,0,0,.7);
+    transition: all .2s ease;
+}
+#phone-frame.viewfinder-mode {
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%;
+    border-radius: 0; padding: 0;
+    background: transparent; box-shadow: none;
+}
+
+#phone-screen {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg);
+    transition: all .2s ease;
+}
+#phone-screen.viewfinder-mode {
+    border-radius: 0;
+    background: transparent;
+}
+
+#phone-screen.viewfinder-mode .notch,
+#phone-screen.viewfinder-mode .status-bar {
+    display: none;
+}
+
+.notch {
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 130px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 90;
+}
+
+.status-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 38px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 20px 0;
+    color: var(--white); font-size: 12px; font-weight: 600;
+    font-family: var(--font-mono);
+    z-index: 80;
+    cursor: pointer;
+}
+.status-icons { display: flex; gap: 8px; align-items: center; color: var(--white2); }
+.status-icons .batt { display:flex; align-items:center; gap:3px; color: var(--green); }
+
+/* ---------------- Boot sequence ---------------- */
+#boot-screen {
+    position: absolute; inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    animation: rdui-boot-out .4s ease 1.4s forwards;
+}
+.boot-logo {
+    font-family: var(--font-mono); font-size: 34px; font-weight: 700;
+    color: var(--red); letter-spacing: 4px;
+    text-shadow: 0 0 18px var(--glow);
+    animation: rdui-glitch-in .9s ease;
+}
+.boot-logo .boot-os { color: var(--white); margin-left: 6px; }
+.boot-sub {
+    font-family: var(--font-mono); font-size: 9px; color: var(--muted2);
+    letter-spacing: 3px; text-transform: uppercase;
+}
+.boot-bar { width: 120px; height: 2px; background: var(--b1); margin-top: 10px; }
+.boot-bar-fill { height: 100%; width: 0%; background: var(--red); animation: rdui-boot-fill 1.2s ease forwards; box-shadow: 0 0 8px var(--glow); }
+
+@keyframes rdui-glitch-in {
+    0%   { opacity: 0; transform: translateX(-6px); filter: blur(2px); }
+    20%  { opacity: 1; transform: translateX(3px);  filter: blur(0); }
+    30%  { transform: translateX(-2px); }
+    40%  { transform: translateX(0); }
+    92%  { opacity: 1; }
+    94%  { transform: translate(-2px,1px); }
+    96%  { transform: translate(2px,-1px); }
+    100% { transform: translate(0); }
+}
+@keyframes rdui-boot-fill { from { width: 0%; } to { width: 100%; } }
+@keyframes rdui-boot-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+
+/* ---------------- Wallpapers moved to theme/rdui-phone.css — shared with the settings app's swatch previews ---------------- */
+
+/* ---------------- Lockscreen ---------------- */
+#lockscreen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    padding-bottom: 56px;
+    z-index: 30;
+    cursor: grab;
+    touch-action: none;
+    transition: opacity .28s ease, transform .28s ease;
+}
+#lockscreen.dragging { transition: none; cursor: grabbing; }
+.lock-brand {
+    position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 4px;
+    color: var(--red); text-shadow: 0 0 10px var(--glow);
+}
+.lock-brand span { color: var(--white2); margin-left: 3px; }
+#lockscreen .lock-time { font-size: 58px; font-weight: 200; color: var(--white); margin-bottom: 2px; font-family: var(--font-sans); }
+#lockscreen .lock-date { font-size: 13px; color: var(--muted2); margin-bottom: 18px; font-family: var(--font-mono); letter-spacing: 1px; text-transform: uppercase; }
+.lock-notifs { display: flex; flex-direction: column; gap: 6px; width: 84%; margin-bottom: 24px; max-height: 160px; overflow: hidden; }
+.lock-notif-item {
+    display:flex; align-items:center; gap:8px;
+    background: rgba(255,0,0,.05); border: 1px solid var(--b2);
+    border-radius: var(--r-sm); padding: 8px 10px;
+    font-size: 11px; color: var(--white2);
+}
+.lock-notif-item i { width:14px; height:14px; color: var(--red); flex-shrink:0; }
+.swipe-hint {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--muted2); letter-spacing: 1.5px; text-transform: uppercase;
+    font-family: var(--font-mono);
+    animation: rdui-pulse-hint 2s ease-in-out infinite;
+}
+@keyframes rdui-pulse-hint { 0%,100% { opacity: .35; } 50% { opacity: .9; } }
+#lockscreen.unlocking { opacity: 0; transform: translateY(-400px); }
+#lockscreen.hidden { display: none; }
+
+/* ---------------- Homescreen ---------------- */
+#homescreen {
+    position: absolute; inset: 0;
+    padding: 52px 18px 20px;
+}
+#homescreen.hidden { display: none; }
+
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px 12px;
+    margin-top: 8px;
+}
+.app-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.app-icon .glyph {
+    position: relative;
+    width: 54px; height: 54px; border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--glyph-color, var(--red));
+    transition: border-color .15s;
+}
+.app-icon:active .glyph { transform: scale(.92); border-color: var(--red2); }
+.app-icon .glyph [data-lucide] { width: 22px; height: 22px; }
+.app-icon span { font-size: 10px; color: var(--white2); text-align: center; font-family: var(--font-mono); letter-spacing: .5px; text-transform: uppercase; }
+
+/* ---------------- App view (iframe host) ---------------- */
+#app-view { position: absolute; inset: 0; background: var(--bg); z-index: 20; }
+#app-view.hidden { display: none; }
+.app-header {
+    height: 52px; padding-top: 30px;
+    display: flex; align-items: center; gap: 8px; padding-left: 10px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--b1);
+    color: var(--white); font-size: 13px; font-weight: 600;
+    font-family: var(--font-mono); letter-spacing: 1px; text-transform: uppercase;
+}
+.app-header button { background: none; border: none; color: var(--red); cursor: pointer; display:flex; align-items:center; padding: 4px; }
+#app-frame { width: 100%; height: calc(100% - 52px); border: none; }
+#phone-screen.viewfinder-mode .app-header { display: none; }
+#phone-screen.viewfinder-mode #app-frame { height: 100%; }
+
+/* #app-view carries a solid --bg fill for every normal app (z-index 20,
+   sits directly over #phone-screen). Viewfinder-mode makes the frame and
+   screen transparent above, but without this line #app-view stays opaque
+   and blocks the live game render underneath — this was the root cause of
+   the Camera app's black-screen bug. Any app calling setViewfinder(true)
+   needs this to actually see through. */
+#phone-screen.viewfinder-mode #app-view { background: transparent; }
+
+/* ---------------- Notifications (toast banners) ---------------- */
+#notif-stack {
+    position: absolute; top: 44px; left: 12px; right: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 60; pointer-events: none;
+}
+.notif-banner {
+    display: flex; gap: 10px; align-items: center;
+    background: rgba(10,10,10,.94);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--b2);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+    color: var(--white);
+    transform: translateY(-16px); opacity: 0;
+    transition: all .25s ease;
+}
+.notif-banner.show { transform: translateY(0); opacity: 1; }
+.notif-icon { color: var(--red); flex-shrink: 0; display:flex; }
+.notif-icon [data-lucide] { width: 18px; height: 18px; }
+.notif-title { font-size: 11px; font-weight: 700; font-family: var(--font-mono); letter-spacing: .5px; text-transform: uppercase; }
+.notif-body { font-size: 12px; color: var(--white2); margin-top: 1px; }
+
+/* ---------------- Notification Center ---------------- */
+#notif-center {
+    position: absolute; top: 0; left: 0; right: 0;
+    max-height: 70%;
+    background: rgba(8,8,8,.95);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--b2);
+    z-index: 55;
+    padding: 44px 14px 14px;
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    transform: translateY(0);
+    transition: transform .25s ease;
+    overflow-y: auto;
+}
+#notif-center.hidden { transform: translateY(-100%); pointer-events: none; }
+.notif-center-header {
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--red); font-size: 11px; font-weight: 700; margin-bottom: 10px;
+    font-family: var(--font-mono); letter-spacing: 1.5px; text-transform: uppercase;
+}
+.notif-center-header span { display: flex; align-items: center; gap: 6px; }
+.notif-center-header button {
+    background: rgba(255,0,0,.08); border: 1px solid var(--b2); color: var(--red2);
+    font-size: 10px; padding: 5px 10px; border-radius: var(--r-full); cursor: pointer;
+    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px;
+}
+.notif-item {
+    display: flex; gap: 10px; align-items: center;
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--b1);
+    border-radius: var(--r-md); padding: 10px; margin-bottom: 8px;
+    color: var(--white);
+}
+
+/* App icon unread badge */
+.app-icon .glyph { position: relative; }
+.badge {
+    position: absolute; top: -5px; right: -5px;
+    min-width: 17px; height: 17px; border-radius: var(--r-full);
+    background: var(--red);
+    color: #fff; font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 0 0 2px #000, 0 0 8px var(--glow);
+    font-family: var(--font-mono);
+}
+
+/* ---------------- Call overlay ---------------- */
+#call-overlay {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 20%, #1a0000, #000 70%);
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 86px 30px 50px;
+    z-index: 70;
+    color: var(--white);
+}
+#call-overlay.hidden { display: none; }
+.call-avatar {
+    width: 92px; height: 92px; border-radius: 50%;
+    background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+    border: 1px solid var(--red2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red);
+    box-shadow: 0 0 30px var(--glow-soft);
+}
+.call-avatar [data-lucide] { width: 34px; height: 34px; }
+#call-number { font-size: 19px; font-weight: 600; margin-top: 16px; font-family: var(--font-mono); letter-spacing: 1px; }
+#call-status-label { font-size: 11px; color: var(--muted2); margin-top: 5px; text-transform: uppercase; letter-spacing: 1.5px; font-family: var(--font-mono); }
+#call-duration { display: none; font-size: 12px; color: var(--green); margin-top: 5px; font-family: var(--font-mono); }
+#call-overlay.active-call #call-duration { display: block; }
+
+.call-actions { display: flex; gap: 46px; }
+.call-btn {
+    width: 60px; height: 60px; border-radius: 50%;
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+}
+.call-btn [data-lucide] { width: 24px; height: 24px; }
+
+/* Ringing (default): decline + accept visible, hangup hidden.
+   Active call: only hangup visible, decline + accept hidden.
+   Was missing 2 of these 3 rules — decline and hangup never toggled,
+   so all 3 buttons stacked visible while ringing, and decline stayed
+   visible next to hangup once connected. */
+.call-actions .hangup { display: none; }
+#call-overlay.active-call .call-actions .accept  { display: none; }
+#call-overlay.active-call .call-actions .decline { display: none; }
+#call-overlay.active-call .call-actions .hangup  { display: flex; }
+
+/* Outgoing (caller placed the call, still ringing): only hangup, to cancel.
+   No accept (can't accept your own call) and no decline (that's the
+   callee's action). */
+#call-overlay.outgoing-call .call-actions .accept  { display: none; }
+#call-overlay.outgoing-call .call-actions .decline { display: none; }
+#call-overlay.outgoing-call .call-actions .hangup  { display: flex; }

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="../../theme/rdui-phone.css" />
+<script src="../../vendor/lucide.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+  body { background: var(--bg); color: var(--white); height: 100vh; overflow: hidden; }
+  :root { --teal: #14b8a6; }
+
+  .gallery-header { padding: 14px 16px 10px; }
+  .gallery-title { font-family: var(--font-mono); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal); }
+
+  .gallery-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px;
+    overflow-y: auto; height: calc(100% - 46px);
+  }
+  .photo-thumb {
+    aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: var(--bgc);
+    border: 1px solid var(--b1); cursor: pointer;
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .viewer {
+    position: fixed; inset: 0; background: rgba(0,0,0,.97); backdrop-filter: blur(6px);
+    display: flex; flex-direction: column; z-index: 60;
+  }
+  .viewer.hidden { display: none; }
+  .viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px 10px; }
+  .viewer-top button {
+    width: 36px; height: 36px; border-radius: 50%; border: none; color: #fff;
+    background: rgba(255,255,255,.08); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .viewer-date { font-size: 10px; color: var(--muted2); font-family: var(--font-mono); }
+  .viewer-img-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; min-height: 0; }
+  .viewer-img { max-width: 100%; max-height: 100%; border-radius: var(--r-md); object-fit: contain; }
+  .viewer-actions { display: flex; gap: 10px; padding: 16px; }
+  .viewer-actions button {
+    flex: 1; padding: 12px; border-radius: var(--r-full); cursor: pointer;
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--b1);
+    background: var(--bg2); color: var(--white2);
+  }
+  .viewer-actions button.danger { border-color: var(--red2); color: var(--red); }
+  .viewer-actions button.accent { border-color: var(--teal); color: var(--teal); }
+</style>
+</head>
+<body>
+  <div class="gallery-header">
+    <div class="gallery-title" id="l-title">Gallery</div>
+  </div>
+  <div class="gallery-grid" id="grid"></div>
+
+  <div class="viewer hidden" id="viewer">
+    <div class="viewer-top">
+      <button id="viewer-close"><i data-lucide="chevron-left"></i></button>
+      <div class="viewer-date" id="viewer-date"></div>
+      <span style="width:36px;"></span>
+    </div>
+    <div class="viewer-img-wrap"><img class="viewer-img" id="viewer-img" /></div>
+    <div class="viewer-actions">
+      <button class="accent" id="btn-wallpaper"><i data-lucide="image"></i><span id="l-wallpaper">Set as Wallpaper</span></button>
+      <button class="danger" id="btn-delete"><i data-lucide="trash-2"></i></button>
+    </div>
+  </div>
+
+<script src="../../sdk/rde-phone-sdk.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+  let photos = [];
+  let currentId = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  async function load() {
+    await RDEPhone.ready;
+    el('l-title').textContent = RDEPhone.t('app_gallery_title');
+    el('l-wallpaper').textContent = RDEPhone.t('set_as_wallpaper');
+
+    photos = await RDEPhone.request('getPhotos').catch(() => []);
+    render();
+    refreshIcons();
+  }
+
+  function render() {
+    const grid = el('grid');
+    if (!photos || !photos.length) {
+      grid.innerHTML = `<div class="rdui-empty" style="grid-column:1/-1;">${RDEPhone.t('gallery_empty')}</div>`;
+      return;
+    }
+    grid.innerHTML = photos.map((p) => `
+      <div class="photo-thumb" data-id="${p.id}"><img src="${p.image_data}" loading="lazy" /></div>
+    `).join('');
+    grid.querySelectorAll('.photo-thumb').forEach((node) => {
+      node.addEventListener('click', () => openViewer(node.dataset.id));
+    });
+  }
+
+  function openViewer(id) {
+    const photo = photos.find((p) => String(p.id) === String(id));
+    if (!photo) return;
+    currentId = id;
+    el('viewer-img').src = photo.image_data;
+    el('viewer-date').textContent = new Date(photo.created_at).toLocaleString();
+    el('viewer').classList.remove('hidden');
+  }
+
+  el('viewer-close').addEventListener('click', () => el('viewer').classList.add('hidden'));
+
+  el('btn-delete').addEventListener('click', async () => {
+    if (!currentId) return;
+    const result = await RDEPhone.request('deletePhoto', { id: Number(currentId) }).catch(() => null);
+    if (result && result.ok) {
+      photos = photos.filter((p) => String(p.id) !== String(currentId));
+      el('viewer').classList.add('hidden');
+      render();
+    }
+  });
+
+  el('btn-wallpaper').addEventListener('click', async () => {
+    if (!currentId) return;
+    const photo = photos.find((p) => String(p.id) === String(currentId));
+    if (!photo) return;
+
+    const settings = await RDEPhone.request('getSettings').catch(() => null);
+    if (!settings) return;
+    settings.wallpaper = 'custom';
+    settings.wallpaperUrl = photo.image_data;
+    await RDEPhone.request('setSettings', settings);
+
+    // Live-apply in the shell immediately, same event the Settings app uses
+    window.parent.postMessage({ source: 'rde_phone_app', type: 'settingsChanged', data: settings }, '*');
+    RDEPhone.notify({ title: RDEPhone.t('app_gallery_title'), body: RDEPhone.t('wallpaper_set'), icon: 'image' });
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
