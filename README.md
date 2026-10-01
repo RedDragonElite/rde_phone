@@ -53,7 +53,7 @@ We said no.
 
 ## 📸 Screenshots
 
-> Drop a PR with your screenshots!
+<img width="8474" height="9864" alt="rde_phone_diagram" src="https://github.com/user-attachments/assets/1c611c1b-6d7b-45e4-a39f-92c601959423" />
 
 ---
 
